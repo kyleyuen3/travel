@@ -11,6 +11,7 @@ export default function SpotDetail() {
   const navigate = useNavigate();
   const [spot, setSpot] = useState(null);
   const [error, setError] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     setSpot(null);
@@ -22,7 +23,6 @@ export default function SpotDetail() {
   }, [id, user?.id]);
 
   async function handleDelete() {
-    if (!confirm(`Delete "${spot.name}"? This can't be undone.`)) return;
     try {
       await api.deleteSpot(spot.id);
       navigate('/me');
@@ -65,16 +65,27 @@ export default function SpotDetail() {
         {spot.bookmarkCount} {spot.bookmarkCount === 1 ? 'save' : 'saves'}
       </p>
 
-      {isOwner && (
-        <div className="row">
-          <Link to={`/spots/${spot.id}/edit`} className="btn btn-outline btn-sm">
-            Edit
-          </Link>
-          <button className="btn btn-danger btn-sm" onClick={handleDelete}>
-            Delete
-          </button>
-        </div>
-      )}
+      {isOwner &&
+        (confirmingDelete ? (
+          <div className="row">
+            <span className="small">Delete this spot? This can't be undone.</span>
+            <button className="btn btn-danger btn-sm" onClick={handleDelete}>
+              Yes, delete
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={() => setConfirmingDelete(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="row">
+            <Link to={`/spots/${spot.id}/edit`} className="btn btn-outline btn-sm">
+              Edit
+            </Link>
+            <button className="btn btn-danger btn-sm" onClick={() => setConfirmingDelete(true)}>
+              Delete
+            </button>
+          </div>
+        ))}
     </article>
   );
 }

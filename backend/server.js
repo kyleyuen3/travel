@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
@@ -48,9 +50,23 @@ app.use((err, req, res, next) => {
 
 const PORT = Number(process.env.PORT) || 3001;
 
+// Create any missing tables on startup (schema.sql only uses CREATE TABLE IF NOT EXISTS),
+// so a fresh hosted database works without running db:init by hand.
+async function ensureSchema() {
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  const statements = schema
+    .replace(/^\s*--.*$/gm, '')
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const statement of statements) await pool.query(statement);
+}
+
 pool
   .query('SELECT 1')
   .then(() => console.log('DB connected'))
-  .catch((err) => console.error('DB connection failed:', err.message));
+  .then(ensureSchema)
+  .then(() => console.log('Tables ready'))
+  .catch((err) => console.error('DB setup failed:', err.message));
 
 app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
